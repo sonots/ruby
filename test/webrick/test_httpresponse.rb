@@ -137,5 +137,19 @@ module WEBrick
       r.binmode
       assert_equal "5\r\nhello\r\n0\r\n\r\n", r.read
     end
+
+    def test_chunked_header
+      @res['Transfer-Encoding'] = 'chunked'
+      @res.request_http_version = HTTPVersion::convert("1.1")
+      @res.setup_header
+      assert_nil @res['Content-Length']
+    end
+
+    def test_chunked_disabled_in_less_1_1
+      @res['Transfer-Encoding'] = 'chunked'
+      @res.request_http_version = HTTPVersion::convert("1.0")
+      @res.setup_header
+      assert_nil @res['Transfer-Encoding']
+    end
   end
 end

@@ -231,8 +231,9 @@ module WEBrick
 
       # HTTP/1.0 features
       if @request_http_version < "1.1"
-        if chunked?
+        if chunked? || @header["transfer-encoding"] == "chunked"
           @chunked = false
+          @header.delete('transfer-encoding')
           ver = @request_http_version.to_s
           msg = "chunked is set for an HTTP/#{ver} request. (ignored)"
           @logger.warn(msg)
@@ -243,7 +244,8 @@ module WEBrick
       if @status == 304 || @status == 204 || HTTPStatus::info?(@status)
         @header.delete('content-length')
         @body = ""
-      elsif chunked?
+      elsif chunked? || @header["transfer-encoding"] == "chunked"
+        @chunked = true
         @header["transfer-encoding"] = "chunked"
         @header.delete('content-length')
       elsif %r{^multipart/byteranges} =~ @header['content-type']
