@@ -27,13 +27,14 @@ require 'monitor'
 # +ERROR+:: A handleable error condition.
 # +WARN+::  A warning.
 # +INFO+::  Generic (useful) information about system operation.
-# +DEBUG+:: Low-level information for developers.
+# +DEBUG+:: Information for developers.
+# +TRACE+:: Low-level information for developers.
 #
 # For instance, in a production system, you may have your Logger set to
 # +INFO+ or even +WARN+.
 # When you are developing the system, however, you probably
 # want to know about the program's internal state, and would set the Logger to
-# +DEBUG+.
+# +DEBUG+ or +TRACE+.
 #
 # *Note*: Logger does not escape or sanitize any messages passed to it.
 # Developers should be aware of when potentially malicious data (user-input)
@@ -78,7 +79,7 @@ require 'monitor'
 #   end
 #
 # Because the Logger's level is set to +WARN+, only the warning, error, and
-# fatal messages are recorded.  The debug and info messages are silently
+# fatal messages are recorded.  The trace, debug and info messages are silently
 # discarded.
 #
 # === Features
@@ -126,9 +127,9 @@ require 'monitor'
 # === How to log a message
 #
 # Notice the different methods (+fatal+, +error+, +info+) being used to log
-# messages of various levels?  Other methods in this family are +warn+ and
-# +debug+.  +add+ is used below to log a message of an arbitrary (perhaps
-# dynamic) level.
+# messages of various levels?  Other methods in this family are +warn+,
+# +debug+, and +trace+. +add+ is used below to log a message of an arbitrary
+# (perhaps dynamic) level.
 #
 # 1. Message in a block.
 #
@@ -174,14 +175,14 @@ require 'monitor'
 #
 #      logger.level = Logger::INFO
 #
-#      # DEBUG < INFO < WARN < ERROR < FATAL < UNKNOWN
+#      # TRACE < DEBUG < INFO < WARN < ERROR < FATAL < UNKNOWN
 #
 # 3. Symbol or String (case insensitive)
 #
 #      logger.level = :info
 #      logger.level = 'INFO'
 #
-#      # :debug < :info < :warn < :error < :fatal < :unknown
+#      # :trace < :debug < :info < :warn < :error < :fatal < :unknown
 #
 # == Format
 #
@@ -225,7 +226,9 @@ class Logger
 
   # Logging severity.
   module Severity
-    # Low-level information, mostly for developers.
+    # Low-level information for developers.
+    TRACE = -1
+    # Information for developers.
     DEBUG = 0
     # Generic (useful) information about system operation.
     INFO = 1
@@ -252,6 +255,8 @@ class Logger
     else
       _severity = severity.to_s.downcase
       case _severity
+      when 'trace'.freeze
+        @level = TRACE
       when 'debug'.freeze
         @level = DEBUG
       when 'info'.freeze
@@ -303,6 +308,10 @@ class Logger
   alias sev_threshold= level=
 
   # Returns +true+ iff the current severity level allows for the printing of
+  # +TRACE+ messages.
+  def trace?; @level <= TRACE; end
+
+  # Returns +true+ iff the current severity level allows for the printing of
   # +DEBUG+ messages.
   def debug?; @level <= DEBUG; end
 
@@ -344,7 +353,7 @@ class Logger
   #
   def initialize(logdev, shift_age = 0, shift_size = 1048576)
     @progname = nil
-    @level = DEBUG
+    @level = TRACE
     @default_formatter = Formatter.new
     @formatter = nil
     @logdev = nil
@@ -381,8 +390,8 @@ class Logger
   # === Args
   #
   # +severity+::
-  #   Severity.  Constants are defined in Logger namespace: +DEBUG+, +INFO+,
-  #   +WARN+, +ERROR+, +FATAL+, or +UNKNOWN+.
+  #   Severity.  Constants are defined in Logger namespace: +TRACE+, +DEBUG+,
+  #   +INFO+, +WARN+, +ERROR+, +FATAL+, or +UNKNOWN+.
   # +message+::
   #   The log message.  A String or Exception.
   # +progname+::
@@ -399,8 +408,8 @@ class Logger
   # === Description
   #
   # Log a message if the given severity is high enough.  This is the generic
-  # logging method.  Users will be more inclined to use #debug, #info, #warn,
-  # #error, and #fatal.
+  # logging method.  Users will be more inclined to use #trace, #debug, #info,
+  # #warn, #error, and #fatal.
   #
   # <b>Message format</b>: +message+ can be any object, but it has to be
   # converted to a String in order to log it.  Generally, +inspect+ is used
@@ -443,6 +452,15 @@ class Logger
     unless @logdev.nil?
       @logdev.write(msg)
     end
+  end
+
+  #
+  # Log a +TRACE+ message.
+  #
+  # See #info for more information.
+  #
+  def trace(progname = nil, &block)
+    add(TRACE, nil, progname, &block)
   end
 
   #
@@ -535,7 +553,15 @@ class Logger
 private
 
   # Severity label for logging (max 5 chars).
-  SEV_LABEL = %w(DEBUG INFO WARN ERROR FATAL ANY).each(&:freeze).freeze
+  SEV_LABEL = {
+    TRACE   => 'TRACE',
+    DEBUG   => 'DEBUG',
+    INFO    => 'INFO',
+    WARN    => 'WARN',
+    ERROR   => 'ERROR',
+    FATAL   => 'FATAL',
+    UNKNOWN => 'ANY',
+  }.freeze
 
   def format_severity(severity)
     SEV_LABEL[severity] || 'ANY'

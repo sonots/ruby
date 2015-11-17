@@ -46,7 +46,11 @@ class TestLogger < Test::Unit::TestCase
     assert_equal(WARN, @logger.sev_threshold)
     assert_equal(WARN, @logger.level)
 
+    @logger.level = TRACE
+    assert(@logger.trace?)
+    assert(@logger.debug?)
     @logger.level = DEBUG
+    assert(!@logger.trace?)
     assert(@logger.debug?)
     assert(@logger.info?)
     @logger.level = INFO
@@ -71,12 +75,14 @@ class TestLogger < Test::Unit::TestCase
 
   def test_symbol_level
     logger_symbol_levels = {
+      trace:   TRACE,
       debug:   DEBUG,
       info:    INFO,
       warn:    WARN,
       error:   ERROR,
       fatal:   FATAL,
       unknown: UNKNOWN,
+      TRACE:   TRACE,
       DEBUG:   DEBUG,
       INFO:    INFO,
       WARN:    WARN,
@@ -93,12 +99,14 @@ class TestLogger < Test::Unit::TestCase
 
   def test_string_level
     logger_string_levels = {
+      'trace'   => TRACE,
       'debug'   => DEBUG,
       'info'    => INFO,
       'warn'    => WARN,
       'error'   => ERROR,
       'fatal'   => FATAL,
       'unknown' => UNKNOWN,
+      'trace'   => TRACE,
       'DEBUG'   => DEBUG,
       'INFO'    => INFO,
       'WARN'    => WARN,
@@ -161,7 +169,7 @@ class TestLogger < Test::Unit::TestCase
   def test_initialize
     logger = Logger.new(STDERR)
     assert_nil(logger.progname)
-    assert_equal(DEBUG, logger.level)
+    assert_equal(TRACE, logger.level)
     assert_nil(logger.datetime_format)
   end
 
@@ -194,18 +202,24 @@ class TestLogger < Test::Unit::TestCase
   def test_level_log
     logger = Logger.new(nil)
     logger.progname = "my_progname"
-    log = log(logger, :debug, "custom_progname") { "msg" }
-    assert_equal("msg\n", log.msg)
-    assert_equal("custom_progname", log.progname)
-    assert_equal("DEBUG", log.severity)
-    assert_equal("D", log.label)
-    #
     log = log(logger, :debug) { "msg_block" }
     assert_equal("msg_block\n", log.msg)
     assert_equal("my_progname", log.progname)
     log = log(logger, :debug, "msg_inline")
     assert_equal("msg_inline\n", log.msg)
     assert_equal("my_progname", log.progname)
+    #
+    log = log(logger, :trace, "custom_progname") { "msg" }
+    assert_equal("msg\n", log.msg)
+    assert_equal("custom_progname", log.progname)
+    assert_equal("TRACE", log.severity)
+    assert_equal("T", log.label)
+    #
+    log = log(logger, :debug, "custom_progname") { "msg" }
+    assert_equal("msg\n", log.msg)
+    assert_equal("custom_progname", log.progname)
+    assert_equal("DEBUG", log.severity)
+    assert_equal("D", log.label)
     #
     log = log(logger, :info, "custom_progname") { "msg" }
     assert_equal("msg\n", log.msg)
