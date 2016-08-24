@@ -2216,13 +2216,22 @@ CODE
   end
 
   def test_rstrip
+    assert_raise(ArgumentError) { "hello".rstrip('foo', 'bar') }
+    assert_raise(TypeError) { "hello".rstrip(1) }
+
     assert_equal("  hello", "  hello  ".rstrip)
     assert_equal("\u3042", "\u3042   ".rstrip)
     assert_raise(Encoding::CompatibilityError) { "\u3042".encode("ISO-2022-JP").rstrip }
-    assert_equal("  helloABC", "  helloABC".rstrip("ABC"))
+    assert_equal("h", "hello".rstrip("ello"))
+    assert_equal("hello", "hello".rstrip("hell"))
+    assert_equal("h", "hello".rstrip(/ello/))
+    assert_equal("hello", "hello".rstrip(/hell/))
   end
 
   def test_rstrip_bang
+    assert_raise(ArgumentError) { "hello".rstrip!('foo', 'bar') }
+    assert_raise(TypeError) { "hello".rstrip!(1) }
+
     s1 = S("  hello  ")
     assert_equal("  hello", s1.rstrip!)
     assert_equal("  hello", s1)
@@ -2241,18 +2250,39 @@ CODE
 
     assert_raise(Encoding::CompatibilityError) { "\u3042".encode("ISO-2022-JP").rstrip! }
 
-    s5 = S("  helloABC")
-    assert_equal("  hello", s1.rstrip!("ABC"))
-    assert_equal("  hello", s1)
+    s5 = S("hello")
+    assert_equal("h", s5.rstrip!("ello"))
+    assert_equal("h", s5)
+
+    s6 = S("hello")
+    assert_nil(s6.rstrip!("hell"))
+    assert_equal("hello", s6)
+
+    s7 = S("hello")
+    assert_equal("h", s7.rstrip!(/ello/))
+    assert_equal("h", s7)
+
+    s8 = S("hello")
+    assert_nil(s8.rstrip!(/hell/))
+    assert_equal("hello", s8)
   end
 
   def test_lstrip
+    assert_raise(ArgumentError) { "hello".lstrip('foo', 'bar') }
+    assert_raise(TypeError) { "hello".lstrip(1) }
+
     assert_equal("hello  ", "  hello  ".lstrip)
     assert_equal("\u3042", "   \u3042".lstrip)
-    assert_equal("hello  ", "xxxhello  ".lstrip("xxx"))
+    assert_equal("o", "hello".lstrip("hell"))
+    assert_equal("hello", "hello".lstrip("ello"))
+    assert_equal("o", "hello".lstrip(/hell/))
+    assert_equal("hello", "hello".lstrip(/ello/))
   end
 
   def test_lstrip_bang
+    assert_raise(ArgumentError) { S("hello").lstrip!('foo', 'bar') }
+    assert_raise(TypeError) { S("hello").lstrip!(1) }
+
     s1 = S("  hello  ")
     assert_equal("hello  ", s1.lstrip!)
     assert_equal("hello  ", s1)
@@ -2269,9 +2299,21 @@ CODE
     assert_equal(nil, s4.lstrip!)
     assert_equal("\u3042", s4)
 
-    s5 = S("xxxhello  ")
-    assert_equal("hello  ", s1.lstrip!("xxx"))
-    assert_equal("hello  ", s1)
+    s5 = S("hello")
+    assert_equal("o", s5.lstrip!("hell"))
+    assert_equal("o", s5)
+
+    s6 = S("hello")
+    assert_nil(s6.lstrip!("ello"))
+    assert_equal("hello", s6)
+
+    s7 = S("hello")
+    assert_equal("o", s7.lstrip!(/hell/))
+    assert_equal("o", s7)
+
+    s8 = S("hello")
+    assert_nil(s8.lstrip!(/ello/))
+    assert_equal("hello", s8)
   end
 
 =begin

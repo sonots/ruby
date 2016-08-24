@@ -8012,21 +8012,69 @@ lstrip_offset(VALUE str, const char *s, const char *e, rb_encoding *enc)
     return s - start;
 }
 
+static long
+lstrip_argument_offset(int argc, VALUE *argv, VALUE str, rb_encoding *enc)
+{
+    long loffset = 0;
+    VALUE sub = argv[0];
+
+    if (SPECIAL_CONST_P(sub)) goto generic;
+    switch (BUILTIN_TYPE(sub)) {
+      case T_REGEXP: {
+        VALUE m, offset;
+        long begin, end;
+
+        m = rb_str_match_m(argc, argv, str);
+        if (NIL_P(m)) return 0;
+
+        offset = rb_funcall(m, rb_intern("offset"), 1, INT2NUM(0));
+        begin = NUM2INT(RARRAY_AREF(offset, 0));
+        end = NUM2INT(RARRAY_AREF(offset, 1));
+        if (begin != 0) return 0;
+        loffset = end;
+        break;
+      }
+      generic:
+      default: {
+        VALUE tmp;
+        tmp = rb_check_string_type(sub);
+        if (NIL_P(tmp)) {
+            rb_raise(rb_eTypeError, "type mismatch: %s given",
+                rb_obj_classname(sub));
+        }
+        sub = tmp;
+      }
+        /* fall through */
+      case T_STRING: {
+        long pos = rb_str_index(str, sub, 0);
+        if (pos != 0) return 0;
+        loffset = str_strlen(sub, enc);
+        break;
+      }
+    }
+    return loffset;
+}
+
 /*
  *  call-seq:
- *     str.lstrip!(substr = nil)   -> self or nil
+ *     str.lstrip!           -> self or nil
+ *     str.lstrip!(substr)   -> self or nil
+ *     str.lstrip!(regexp)   -> self or nil
  *
  *  Removes leading whitespace from <i>str</i>, returning <code>nil</code> if no
- *  change was made. If <code>substr</substr> argument is given, removes leading
- *  <code>substr</code> from <i>str</i>, returning <code>nil</code> if no change
- *  was made. See also <code>String#rstrip!</code> and <code>String#strip!</code>.
+ *  change was made. If the first parameter is present, removes leading <i>substr</i>
+ *  or pattern (<i>regexp</i>), returning <code>nil</code> if no change was made.
+ *  See also <code>String#rstrip!</code> and <code>String#strip!</code>.
  *
  *  Refer to <code>strip</code> for the definition of whitespace.
  *
- *     "  hello  ".lstrip!       #=> "hello  "
- *     "hello  ".lstrip!         #=> nil
- *     "hello".lstrip!           #=> nil
- *     "ABChello".lstrip!("ABC") #=> "hello"
+ *     "  hello  ".lstrip!     #=> "hello  "
+ *     "hello  ".lstrip!       #=> nil
+ *     "hello".lstrip!         #=> nil
+ *     "hello".lstrip!("hell") #=> "o"
+ *     "hello".lstrip!("ello") #=> nil
+ *     "hello".lstrip!(/hell/) #=> "o"
+ *     "hello".lstrip!(/ello/) #=> nil
  */
 
 static VALUE
@@ -8040,17 +8088,14 @@ rb_str_lstrip_bang(int argc, VALUE *argv, VALUE str)
     str_modify_keep_cr(str);
     enc = STR_ENC_GET(str);
     RSTRING_GETMEM(str, start, olen);
+
     if (argc > 0) {
-        if (NIL_P(rb_str_index_m(argc, argv, str))) {
-            return str;
-        }
-        else {
-            loffset = str_strlen(argv[0], enc);
-        }
+        loffset = lstrip_argument_offset(argc, argv, str, enc);
     }
     else {
         loffset = lstrip_offset(str, start, start+olen, enc);
     }
+
     if (loffset > 0) {
 	long len = olen-loffset;
 	s = start + loffset;
@@ -8067,18 +8112,23 @@ rb_str_lstrip_bang(int argc, VALUE *argv, VALUE str)
 
 /*
  *  call-seq:
- *     str.lstrip(substr = nil)   -> new_str
+ *     str.lstrip           -> new_str
+ *     str.lstrip(substr)   -> new_str
+ *     str.lstrip(regexp)   -> new_str
  *
  *  Returns a copy of <i>str</i> with leading whitespace removed. If
- *  <code>substr</substr> argument is given, returns a copy of <i>str</i>
- *  with leading <code>substr</code> removed. See also
- *  <code>String#rstrip</code> and <code>String#strip</code>.
+ *  the first parameter is present, returns a copy of <i>str</i> with
+ *  leading <i>substr</i> or pattern (<i>regexp</i>) removed.
+ *  See also <code>String#rstrip</code> and <code>String#strip</code>.
  *
  *  Refer to <code>strip</code> for the definition of whitespace.
  *
- *     "  hello  ".lstrip       #=> "hello  "
- *     "hello".lstrip           #=> "hello"
- *     "ABChello".lstrip("ABC") #=> "hello"
+ *     "  hello  ".lstrip     #=> "hello  "
+ *     "hello".lstrip         #=> "hello"
+ *     "hello".lstrip("hell") #=> "o"
+ *     "hello".lstrip("ello") #=> "hello"
+ *     "hello".lstrip(/hell/) #=> "o"
+ *     "hello".lstrip(/ello/) #=> "hello"
  */
 
 static VALUE
@@ -8091,13 +8141,9 @@ rb_str_lstrip(int argc, VALUE *argv, VALUE str)
     rb_check_arity(argc, 0, 1);
     enc = STR_ENC_GET(str);
     RSTRING_GETMEM(str, start, len);
+
     if (argc > 0) {
-        if (NIL_P(rb_str_index_m(argc, argv, str))) {
-            return rb_str_dup(str);
-        }
-        else {
-            loffset = str_strlen(argv[0], enc);
-        }
+        loffset = lstrip_argument_offset(argc, argv, str, enc);
     }
     else {
         loffset = lstrip_offset(str, start, start+len, enc);
@@ -8133,21 +8179,74 @@ rstrip_offset(VALUE str, const char *s, const char *e, rb_encoding *enc)
     return e - t;
 }
 
+static long
+rstrip_argument_offset(int argc, VALUE *argv, VALUE str, rb_encoding *enc)
+{
+    long roffset = 0;
+    VALUE sub = argv[0];
+
+    if (SPECIAL_CONST_P(sub)) goto generic;
+    switch (BUILTIN_TYPE(sub)) {
+      case T_REGEXP: {
+        VALUE m, offset;
+        long begin, end, len;
+
+        m = rb_str_match_m(argc, argv, str);
+        if (NIL_P(m)) return 0;
+
+        offset = rb_funcall(m, rb_intern("offset"), 1, INT2NUM(0));
+        begin = NUM2INT(RARRAY_AREF(offset, 0));
+        end = NUM2INT(RARRAY_AREF(offset, 1));
+        len = str_strlen(str, enc);
+        if (end != len) return 0;
+        roffset = end - begin;
+        break;
+      }
+      generic:
+      default: {
+        VALUE tmp;
+        tmp = rb_check_string_type(sub);
+        if (NIL_P(tmp)) {
+            rb_raise(rb_eTypeError, "type mismatch: %s given",
+                rb_obj_classname(sub));
+        }
+        sub = tmp;
+      }
+        /* fall through */
+      case T_STRING: {
+        long pos, slen, len, offset;
+        slen = str_strlen(sub, enc);
+        len = str_strlen(str, enc);
+        offset = len - slen;
+        pos = rb_str_rindex(str, sub, offset);
+        if (pos != offset) return 0;
+        roffset = slen;
+        break;
+      }
+    }
+    return roffset;
+}
+
 /*
  *  call-seq:
- *     str.rstrip!(substr = nil)   -> self or nil
+ *     str.rstrip!            -> self or nil
+ *     str.rstrip!(substr)   -> self or nil
+ *     str.rstrip!(regexp)   -> self or nil
  *
  *  Removes trailing whitespace from <i>str</i>, returning <code>nil</code> if no
- *  change was made. If <code>substr</substr> argument is given, removes trailing
- *  <code>substr</code> from <i>str</i>, returning <code>nil</code> if no change
- *  was made. See also <code>String#lstrip!</code> and <code>String#strip!</code>.
+ *  change was made. If the first parameter is present, removes trailing <i>substr</i>
+ *  or pattern (<i>regexp</i>), returning <code>nil</code> if no change was made.
+ *  See also <code>String#lstrip!</code> and <code>String#strip!</code>.
  *
  *  Refer to <code>strip</code> for the definition of whitespace.
  *
- *     "  hello  ".rstrip!       #=> "  hello"
- *     "  hello".rstrip!         #=> nil
- *     "hello".rstrip!           #=> nil
- *     "helloABC".rstrip!("ABC") #=> "hello"
+ *     "  hello  ".rstrip!     #=> "  hello"
+ *     "  hello".rstrip!       #=> nil
+ *     "hello".rstrip!         #=> nil
+ *     "hello".rstrip!("ello") #=> "o"
+ *     "hello".rstrip!("hell") #=> nil
+ *     "hello".rstrip!(/ello/) #=> "o"
+ *     "hello".rstrip!(/hell/) #=> nil
  */
 
 static VALUE
@@ -8161,17 +8260,14 @@ rb_str_rstrip_bang(int argc, VALUE *argv, VALUE str)
     str_modify_keep_cr(str);
     enc = STR_ENC_GET(str);
     RSTRING_GETMEM(str, start, olen);
+
     if (argc > 0) {
-        if (NIL_P(rb_str_index_m(argc, argv, str))) {
-            return str;
-        }
-        else {
-            roffset = str_strlen(argv[0], enc);
-        }
+        roffset = rstrip_argument_offset(argc, argv, str, enc);
     }
     else {
         roffset = rstrip_offset(str, start, start+olen, enc);
     }
+
     if (roffset > 0) {
 	long len = olen - roffset;
 
@@ -8187,18 +8283,23 @@ rb_str_rstrip_bang(int argc, VALUE *argv, VALUE str)
 
 /*
  *  call-seq:
- *     str.rstrip(substr = nil)   -> new_str
+ *     str.rstrip           -> new_str
+ *     str.rstrip(substr)   -> new_str
+ *     str.rstrip(regexp)   -> new_str
  *
  *  Returns a copy of <i>str</i> with trailing whitespace removed. If
- *  <code>substr</substr> argument is given, returns a copy of <i>str</i>
- *  with trailing <code>substr</code> removed. See also
- *  <code>String#lstrip</code> and <code>String#strip</code>.
+ *  the first parameter is present, returns a copy of <i>str</i> with
+ *  trailing <i>substr</i> or pattern (<i>regexp</i> removed.
+ *  See also <code>String#lstrip</code> and <code>String#strip</code>.
  *
  *  Refer to <code>strip</code> for the definition of whitespace.
  *
- *     "  hello  ".rstrip       #=> "  hello"
- *     "hello".rstrip           #=> "hello"
- *     "helloABC".rstrip("ABC") #=> "hello"
+ *     "  hello  ".rstrip     #=> "  hello"
+ *     "hello".rstrip         #=> "hello"
+ *     "hello".rstrip("ello") #=> "h"
+ *     "hello".rstrip("hell") #=> "hello"
+ *     "hello".rstrip(/ello/) #=> "h"
+ *     "hello".rstrip(/hell/) #=> "hello"
  */
 
 static VALUE
@@ -8211,16 +8312,12 @@ rb_str_rstrip(int argc, VALUE *argv, VALUE str)
     rb_check_arity(argc, 0, 1);
     enc = STR_ENC_GET(str);
     RSTRING_GETMEM(str, start, olen);
+
     if (argc > 0) {
-        if (NIL_P(rb_str_index_m(argc, argv, str))) {
-            return rb_str_dup(str);
-        }
-        else {
-            roffset = str_strlen(argv[0], enc);
-        }
+        roffset = rstrip_argument_offset(argc, argv, str, enc);
     }
     else {
-        roffset = rstrip_offset(str, start, start+len, enc);
+        roffset = rstrip_offset(str, start, start+olen, enc);
     }
 
     if (roffset <= 0) return rb_str_dup(str);
@@ -9908,7 +10005,7 @@ Init_String(void)
     rb_define_method(rb_cString, "chomp", rb_str_chomp, -1);
     rb_define_method(rb_cString, "strip", rb_str_strip, 0);
     rb_define_method(rb_cString, "lstrip", rb_str_lstrip, -1);
-    rb_define_method(rb_cString, "rstrip", rb_str_rstrip, 0);
+    rb_define_method(rb_cString, "rstrip", rb_str_rstrip, -1);
 
     rb_define_method(rb_cString, "sub!", rb_str_sub_bang, -1);
     rb_define_method(rb_cString, "gsub!", rb_str_gsub_bang, -1);
@@ -9916,7 +10013,7 @@ Init_String(void)
     rb_define_method(rb_cString, "chomp!", rb_str_chomp_bang, -1);
     rb_define_method(rb_cString, "strip!", rb_str_strip_bang, 0);
     rb_define_method(rb_cString, "lstrip!", rb_str_lstrip_bang, -1);
-    rb_define_method(rb_cString, "rstrip!", rb_str_rstrip_bang, 0);
+    rb_define_method(rb_cString, "rstrip!", rb_str_rstrip_bang, -1);
 
     rb_define_method(rb_cString, "tr", rb_str_tr, 2);
     rb_define_method(rb_cString, "tr_s", rb_str_tr_s, 2);
