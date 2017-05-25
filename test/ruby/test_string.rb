@@ -2401,6 +2401,58 @@ CODE
     assert_equal("\u3042", s4)
   end
 
+  def test_delete_prefix
+    assert_raise(TypeError) { 'hello'.delete_prefix(nil) }
+    assert_raise(TypeError) { 'hello'.delete_prefix(1) }
+    assert_raise(TypeError) { 'hello'.delete_prefix(/hel/) }
+
+    s1 = S("hello")
+    assert_equal("lo", s1.delete_prefix('hel'))
+    assert_equal("hello", s1)
+
+    s2 = S("hello")
+    assert_equal("hello", s2.delete_prefix('lo'))
+    assert_equal("hello", s2)
+
+    s3 = S("\u{3053 3093 306b 3061 306f}")
+    assert_equal("\u{306b 3061 306f}", s3.delete_prefix("\u{3053 3093}"))
+    assert_equal("\u{3053 3093 306b 3061 306f}", s3)
+
+    s4 = S("\u{3053 3093 306b 3061 306f}")
+    assert_equal("\u{3053 3093 306b 3061 306f}", s4.delete_prefix('hel'))
+    assert_equal("\u{3053 3093 306b 3061 306f}", s4)
+
+    s5 = S("hello")
+    assert_equal("hello", s5.delete_prefix("\u{3053 3093}"))
+    assert_equal("hello", s5)
+  end
+
+  def test_delete_prefix_bang
+    assert_raise(TypeError) { 'hello'.delete_prefix!(nil) }
+    assert_raise(TypeError) { 'hello'.delete_prefix!(1) }
+    assert_raise(TypeError) { 'hello'.delete_prefix!(/hel/) }
+
+    s1 = S("hello")
+    assert_equal("lo", s1.delete_prefix!('hel'))
+    assert_equal("lo", s1)
+
+    s2 = S("hello")
+    assert_equal(nil, s2.delete_prefix!('lo'))
+    assert_equal("hello", s2)
+
+    s3 = S("\u{3053 3093 306b 3061 306f}")
+    assert_equal("\u{306b 3061 306f}", s3.delete_prefix!("\u{3053 3093}"))
+    assert_equal("\u{306b 3061 306f}", s3)
+
+    s4 = S("\u{3053 3093 306b 3061 306f}")
+    assert_equal(nil, s4.delete_prefix!('hel'))
+    assert_equal("\u{3053 3093 306b 3061 306f}", s4)
+
+    s5 = S("hello")
+    assert_equal(nil, s5.delete_prefix!("\u{3053 3093}"))
+    assert_equal("hello", s5)
+  end
+
 =begin
   def test_symbol_table_overflow
     assert_in_out_err([], <<-INPUT, [], /symbol table overflow \(symbol [a-z]{8}\) \(RuntimeError\)/)

@@ -9159,6 +9159,73 @@ rb_str_end_with(int argc, VALUE *argv, VALUE str)
     return Qfalse;
 }
 
+/*
+ *  call-seq:
+ *     str.delete_prefix!(substr)   -> self or nil
+ *
+ *  Deletes leading <code>substr</code> from <i>str</i>, returning
+ *  <code>nil</code> if no change was made.
+ *
+ *     "hello".delete_prefix!("hel")  #=> lo
+ *     "hello".delete_prefix!("llo")  #=> nil
+ */
+
+static VALUE
+rb_str_delete_prefix_bang(VALUE str, VALUE substr)
+{
+    long loffset;
+
+    str_modify_keep_cr(str);
+    if (rb_str_start_with(1, &substr, str) == Qtrue) {
+        loffset = RSTRING_LEN(substr);
+    }
+    else {
+        return Qnil;
+    }
+    if (loffset > 0) {
+        char *start, *s;
+        rb_encoding *enc;
+        long olen, len;
+
+        RSTRING_GETMEM(str, start, olen);
+        len = olen - loffset;
+        s = start + loffset;
+        memmove(start, s, len);
+        STR_SET_LEN(str, len);
+#if !SHARABLE_MIDDLE_SUBSTRING
+        enc = STR_ENC_GET(str);
+        TERM_FILL(start + len, rb_enc_mbminlen(enc));
+#endif
+        return str;
+    }
+    return Qnil;
+}
+
+/*
+ *  call-seq:
+ *     str.delete_prefix   -> new_str
+ *
+ *  Returns a copy of <i>str</i> with leading <code>substr</code> deleted.
+ *
+ *     "hello".delete_prefix("hel")   #=> "lo"
+ *     "hello".delete_prefix("llo")   #=> "hello"
+ */
+
+static VALUE
+rb_str_delete_prefix(VALUE str, VALUE substr)
+{
+    long len, loffset;
+    if (rb_str_start_with(1, &substr, str) == Qtrue) {
+        loffset = RSTRING_LEN(substr);
+    }
+    else {
+        return rb_str_dup(str);
+    }
+    if (loffset <= 0) return rb_str_dup(str);
+    len = RSTRING_LEN(str);
+    return rb_str_subseq(str, loffset, len - loffset);
+}
+
 void
 rb_str_setter(VALUE val, ID id, VALUE *var)
 {
@@ -10314,6 +10381,7 @@ Init_String(void)
     rb_define_method(rb_cString, "strip", rb_str_strip, 0);
     rb_define_method(rb_cString, "lstrip", rb_str_lstrip, 0);
     rb_define_method(rb_cString, "rstrip", rb_str_rstrip, 0);
+    rb_define_method(rb_cString, "delete_prefix", rb_str_delete_prefix, 1);
 
     rb_define_method(rb_cString, "sub!", rb_str_sub_bang, -1);
     rb_define_method(rb_cString, "gsub!", rb_str_gsub_bang, -1);
@@ -10322,6 +10390,7 @@ Init_String(void)
     rb_define_method(rb_cString, "strip!", rb_str_strip_bang, 0);
     rb_define_method(rb_cString, "lstrip!", rb_str_lstrip_bang, 0);
     rb_define_method(rb_cString, "rstrip!", rb_str_rstrip_bang, 0);
+    rb_define_method(rb_cString, "delete_prefix!", rb_str_delete_prefix_bang, 1);
 
     rb_define_method(rb_cString, "tr", rb_str_tr, 2);
     rb_define_method(rb_cString, "tr_s", rb_str_tr_s, 2);
