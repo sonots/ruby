@@ -2568,7 +2568,9 @@ rb_syserr_enc_warning(int err, rb_encoding *enc, const char *fmt, ...)
 void
 rb_load_fail(VALUE path, const char *err)
 {
-    VALUE mesg = rb_str_buf_new_cstr(err);
+    VALUE mesg = rb_str_buf_new_cstr("cannot load such file");
+    rb_str_cat2(mesg, " -- ");
+    rb_str_cat2(mesg, err);
     rb_str_cat2(mesg, " -- ");
     rb_str_append(mesg, path);	/* should be ASCII compatible */
     raise_loaderror(path, mesg);

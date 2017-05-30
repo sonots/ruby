@@ -5813,6 +5813,9 @@ rb_find_file_ext_safe(VALUE *filep, const char *const *ext, int safe_level)
 		*filep = copy_path_class(fname, *filep);
 		return (int)(i+1);
 	    }
+            else if (errno != ENOENT) {
+                return 0;
+            }
 	    rb_str_set_len(fname, fnlen);
 	}
 	return 0;
@@ -5838,6 +5841,9 @@ rb_find_file_ext_safe(VALUE *filep, const char *const *ext, int safe_level)
 		*filep = copy_path_class(tmp, *filep);
 		return (int)(j+1);
 	    }
+            else if (errno != ENOENT) {
+                return 0;
+            }
 	    FL_UNSET(tmp, FL_TAINT);
 	}
 	rb_str_set_len(fname, fnlen);

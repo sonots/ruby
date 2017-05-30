@@ -573,7 +573,6 @@ rb_provide(const char *feature)
     rb_provide_feature(rb_fstring_cstr(feature));
 }
 
-NORETURN(static void load_failed(VALUE));
 const rb_iseq_t *rb_iseq_load_iseq(VALUE fname);
 
 static int
@@ -654,7 +653,7 @@ static VALUE
 file_to_load(VALUE fname)
 {
     VALUE tmp = rb_find_file(FilePathValue(fname));
-    if (!tmp) load_failed(fname);
+    if (!tmp) rb_load_fail(fname, strerror(errno));
     return tmp;
 }
 
@@ -708,7 +707,7 @@ rb_f_load(int argc, VALUE *argv)
     path = rb_find_file(fname);
     if (!path) {
 	if (!rb_file_load_ok(RSTRING_PTR(fname)))
-	    load_failed(orig_fname);
+	    rb_load_fail(orig_fname, strerror(errno));
 	path = fname;
     }
     rb_load_internal(path, RTEST(wrap));
@@ -935,12 +934,6 @@ search_required(VALUE fname, volatile VALUE *path, int safe_level)
     return type ? 's' : 'r';
 }
 
-static void
-load_failed(VALUE fname)
-{
-    rb_load_fail(fname, "cannot load such file");
-}
-
 static VALUE
 load_ext(VALUE path)
 {
@@ -1048,7 +1041,7 @@ rb_require_safe(VALUE fname, int safe)
 	JUMP_TAG(result);
     }
     if (result < 0) {
-	load_failed(fname);
+	rb_load_fail(fname, strerror(errno));
     }
 
     return result ? Qtrue : Qfalse;
