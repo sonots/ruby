@@ -383,6 +383,37 @@ CODE
     $/ = save
 
     assert_equal(S("a").hash, S("a\u0101").chomp(S("\u0101")).hash, '[ruby-core:22414]')
+
+    s = S("hello")
+    assert_equal("hel", s.chomp('lo'))
+    assert_equal("hello", s)
+
+    s = S("hello")
+    assert_equal("hello", s.chomp('he'))
+    assert_equal("hello", s)
+
+    s = S("\u{3053 3093 306b 3061 306f}")
+    assert_equal("\u{3053 3093 306b}", s.chomp("\u{3061 306f}"))
+    assert_equal("\u{3053 3093 306b 3061 306f}", s)
+
+    s = S("\u{3053 3093 306b 3061 306f}")
+    assert_equal("\u{3053 3093 306b 3061 306f}", s.chomp('lo'))
+    assert_equal("\u{3053 3093 306b 3061 306f}", s)
+
+    s = S("hello")
+    assert_equal("hello", s.chomp("\u{3061 306f}"))
+    assert_equal("hello", s)
+
+    # skip if argument is a broken string
+    s = S("\xe3\x81\x82")
+    assert_equal("\xe3\x81\x82", s.chomp("\x82"))
+    assert_equal("\xe3\x81\x82", s)
+
+    # argument should be converted to String
+    klass = Class.new {|klass| def to_str; 'a'; end }
+    s = S("abba")
+    assert_equal("abb", s.chomp(klass.new))
+    assert_equal("abba", s)
   ensure
     $/ = save
   end
@@ -441,6 +472,37 @@ CODE
     assert_equal("foo\r", s)
 
     assert_equal(S("a").hash, S("a\u0101").chomp!(S("\u0101")).hash, '[ruby-core:22414]')
+
+    s = S("hello")
+    assert_equal("hel", s.chomp!('lo'))
+    assert_equal("hel", s)
+
+    s = S("hello")
+    assert_equal(nil, s.chomp!('he'))
+    assert_equal("hello", s)
+
+    s = S("\u{3053 3093 306b 3061 306f}")
+    assert_equal("\u{3053 3093 306b}", s.chomp!("\u{3061 306f}"))
+    assert_equal("\u{3053 3093 306b}", s)
+
+    s = S("\u{3053 3093 306b 3061 306f}")
+    assert_equal(nil, s.chomp!('lo'))
+    assert_equal("\u{3053 3093 306b 3061 306f}", s)
+
+    s = S("hello")
+    assert_equal(nil, s.chomp!("\u{3061 306f}"))
+    assert_equal("hello", s)
+
+    # skip if argument is a broken string
+    s = S("\xe3\x81\x82")
+    assert_equal(nil, s.chomp!("\x82"))
+    assert_equal("\xe3\x81\x82", s)
+
+    # argument should be converted to String
+    klass = Class.new {|klass| def to_str; 'a'; end }
+    s = S("abba")
+    assert_equal("abb", s.chomp!(klass.new))
+    assert_equal("abb", s)
   ensure
     $/ = save
   end
