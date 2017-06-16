@@ -2406,25 +2406,36 @@ CODE
     assert_raise(TypeError) { 'hello'.delete_prefix(1) }
     assert_raise(TypeError) { 'hello'.delete_prefix(/hel/) }
 
-    s1 = S("hello")
-    assert_equal("lo", s1.delete_prefix('hel'))
-    assert_equal("hello", s1)
+    s = S("hello")
+    assert_equal("lo", s.delete_prefix('hel'))
+    assert_equal("hello", s)
 
-    s2 = S("hello")
-    assert_equal("hello", s2.delete_prefix('lo'))
-    assert_equal("hello", s2)
+    s = S("hello")
+    assert_equal("hello", s.delete_prefix('lo'))
+    assert_equal("hello", s)
 
-    s3 = S("\u{3053 3093 306b 3061 306f}")
-    assert_equal("\u{306b 3061 306f}", s3.delete_prefix("\u{3053 3093}"))
-    assert_equal("\u{3053 3093 306b 3061 306f}", s3)
+    s = S("\u{3053 3093 306b 3061 306f}")
+    assert_equal("\u{306b 3061 306f}", s.delete_prefix("\u{3053 3093}"))
+    assert_equal("\u{3053 3093 306b 3061 306f}", s)
 
-    s4 = S("\u{3053 3093 306b 3061 306f}")
-    assert_equal("\u{3053 3093 306b 3061 306f}", s4.delete_prefix('hel'))
-    assert_equal("\u{3053 3093 306b 3061 306f}", s4)
+    s = S("\u{3053 3093 306b 3061 306f}")
+    assert_equal("\u{3053 3093 306b 3061 306f}", s.delete_prefix('hel'))
+    assert_equal("\u{3053 3093 306b 3061 306f}", s)
 
-    s5 = S("hello")
-    assert_equal("hello", s5.delete_prefix("\u{3053 3093}"))
-    assert_equal("hello", s5)
+    s = S("hello")
+    assert_equal("hello", s.delete_prefix("\u{3053 3093}"))
+    assert_equal("hello", s)
+
+    # skip if argument is a broken string
+    s = S("\xe3\x81\x82")
+    assert_equal("\xe3\x81\x82", s.delete_prefix("\xe3"))
+    assert_equal("\xe3\x81\x82", s)
+
+    # argument should be converted to String
+    klass = Class.new {|klass| def to_str; 'a'; end }
+    s = S("abba")
+    assert_equal("bba", s.delete_prefix(klass.new))
+    assert_equal("abba", s)
   end
 
   def test_delete_prefix_bang
@@ -2432,25 +2443,36 @@ CODE
     assert_raise(TypeError) { 'hello'.delete_prefix!(1) }
     assert_raise(TypeError) { 'hello'.delete_prefix!(/hel/) }
 
-    s1 = S("hello")
-    assert_equal("lo", s1.delete_prefix!('hel'))
-    assert_equal("lo", s1)
+    s = S("hello")
+    assert_equal("lo", s.delete_prefix!('hel'))
+    assert_equal("lo", s)
 
-    s2 = S("hello")
-    assert_equal(nil, s2.delete_prefix!('lo'))
-    assert_equal("hello", s2)
+    s = S("hello")
+    assert_equal(nil, s.delete_prefix!('lo'))
+    assert_equal("hello", s)
 
-    s3 = S("\u{3053 3093 306b 3061 306f}")
-    assert_equal("\u{306b 3061 306f}", s3.delete_prefix!("\u{3053 3093}"))
-    assert_equal("\u{306b 3061 306f}", s3)
+    s = S("\u{3053 3093 306b 3061 306f}")
+    assert_equal("\u{306b 3061 306f}", s.delete_prefix!("\u{3053 3093}"))
+    assert_equal("\u{306b 3061 306f}", s)
 
-    s4 = S("\u{3053 3093 306b 3061 306f}")
-    assert_equal(nil, s4.delete_prefix!('hel'))
-    assert_equal("\u{3053 3093 306b 3061 306f}", s4)
+    s = S("\u{3053 3093 306b 3061 306f}")
+    assert_equal(nil, s.delete_prefix!('hel'))
+    assert_equal("\u{3053 3093 306b 3061 306f}", s)
 
-    s5 = S("hello")
-    assert_equal(nil, s5.delete_prefix!("\u{3053 3093}"))
-    assert_equal("hello", s5)
+    s = S("hello")
+    assert_equal(nil, s.delete_prefix!("\u{3053 3093}"))
+    assert_equal("hello", s)
+
+    # skip if argument is a broken string
+    s = S("\xe3\x81\x82")
+    assert_equal(nil, s.delete_prefix!("\xe3"))
+    assert_equal("\xe3\x81\x82", s)
+
+    # argument should be converted to String
+    klass = Class.new {|klass| def to_str; 'a'; end }
+    s = S("abba")
+    assert_equal("bba", s.delete_prefix!(klass.new))
+    assert_equal("bba", s)
   end
 
 =begin

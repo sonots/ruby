@@ -9173,32 +9173,33 @@ rb_str_end_with(int argc, VALUE *argv, VALUE str)
 static VALUE
 rb_str_delete_prefix_bang(VALUE str, VALUE substr)
 {
-    long loffset;
+    rb_encoding *enc;
+    char *strptr, *substrptr, *s;
+    long olen, substrlen, len;
 
     str_modify_keep_cr(str);
-    if (rb_str_start_with(1, &substr, str) == Qtrue) {
-        loffset = RSTRING_LEN(substr);
-    }
-    else {
-        return Qnil;
-    }
-    if (loffset > 0) {
-        char *start, *s;
-        rb_encoding *enc;
-        long olen, len;
+    StringValue(substr);
+    if (is_broken_string(substr)) return Qnil;
+    rb_enc_check(str, substr);
 
-        RSTRING_GETMEM(str, start, olen);
-        len = olen - loffset;
-        s = start + loffset;
-        memmove(start, s, len);
-        STR_SET_LEN(str, len);
+    // return if not start_with with substr
+    substrlen = RSTRING_LEN(substr);
+    if (substrlen <= 0) return Qnil;
+    olen = RSTRING_LEN(str);
+    if (olen < substrlen) return Qnil;
+    strptr = RSTRING_PTR(str);
+    substrptr = RSTRING_PTR(substr);
+    if (memcmp(strptr, substrptr, substrlen) != 0) return Qnil;
+
+    len = olen - substrlen;
+    s = strptr + substrlen;
+    memmove(strptr, s, len);
+    STR_SET_LEN(str, len);
 #if !SHARABLE_MIDDLE_SUBSTRING
-        enc = STR_ENC_GET(str);
-        TERM_FILL(start + len, rb_enc_mbminlen(enc));
+    enc = STR_ENC_GET(str);
+    TERM_FILL(strptr + len, rb_enc_mbminlen(enc));
 #endif
-        return str;
-    }
-    return Qnil;
+    return str;
 }
 
 /*
@@ -9214,16 +9215,23 @@ rb_str_delete_prefix_bang(VALUE str, VALUE substr)
 static VALUE
 rb_str_delete_prefix(VALUE str, VALUE substr)
 {
-    long len, loffset;
-    if (rb_str_start_with(1, &substr, str) == Qtrue) {
-        loffset = RSTRING_LEN(substr);
-    }
-    else {
-        return rb_str_dup(str);
-    }
-    if (loffset <= 0) return rb_str_dup(str);
-    len = RSTRING_LEN(str);
-    return rb_str_subseq(str, loffset, len - loffset);
+    char *strptr, *substrptr;
+    long olen, substrlen;
+
+    StringValue(substr);
+    if (is_broken_string(substr)) return rb_str_dup(str);
+    rb_enc_check(str, substr);
+
+    // return if not start_with with substr
+    substrlen = RSTRING_LEN(substr);
+    if (substrlen <= 0) return rb_str_dup(str);
+    olen = RSTRING_LEN(str);
+    if (olen < substrlen) return rb_str_dup(str);
+    strptr = RSTRING_PTR(str);
+    substrptr = RSTRING_PTR(substr);
+    if (memcmp(strptr, substrptr, substrlen) != 0) return rb_str_dup(str);
+
+    return rb_str_subseq(str, substrlen, olen - substrlen);
 }
 
 void
