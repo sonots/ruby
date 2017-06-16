@@ -3,8 +3,7 @@
   string.c -
 
   $Author$
-  created at: Mon Aug  9 17:12:58 JST 1993
-
+  created at: Mon Aug  9 17:12:58 JST 1993 
   Copyright (C) 1993-2007 Yukihiro Matsumoto
   Copyright (C) 2000  Network Applied Communication Laboratory, Inc.
   Copyright (C) 2000  Information-technology Promotion Agency, Japan
@@ -9159,6 +9158,28 @@ rb_str_end_with(int argc, VALUE *argv, VALUE str)
     return Qfalse;
 }
 
+static VALUE
+delete_prefix_substr(VALUE str, VALUE substr)
+{
+    char *strptr, *substrptr;
+    long olen, substrlen;
+
+    StringValue(substr);
+    if (is_broken_string(substr)) return Qnil;
+    rb_enc_check(str, substr);
+
+    // return false if not start_with with substr
+    substrlen = RSTRING_LEN(substr);
+    if (substrlen <= 0) return Qnil;
+    olen = RSTRING_LEN(str);
+    if (olen < substrlen) return Qnil;
+    strptr = RSTRING_PTR(str);
+    substrptr = RSTRING_PTR(substr);
+    if (memcmp(strptr, substrptr, substrlen) != 0) return Qnil;
+
+    return substr; // the one converted to string via StringValue()
+}
+
 /*
  *  call-seq:
  *     str.delete_prefix!(substr)   -> self or nil
@@ -9174,23 +9195,15 @@ static VALUE
 rb_str_delete_prefix_bang(VALUE str, VALUE substr)
 {
     rb_encoding *enc;
-    char *strptr, *substrptr, *s;
+    char *strptr, *s;
     long olen, substrlen, len;
 
     str_modify_keep_cr(str);
-    StringValue(substr);
-    if (is_broken_string(substr)) return Qnil;
-    rb_enc_check(str, substr);
+    substr = delete_prefix_substr(str, substr);
+    if (substr == Qnil) return Qnil;
 
-    // return if not start_with with substr
+    RSTRING_GETMEM(str, strptr, olen);
     substrlen = RSTRING_LEN(substr);
-    if (substrlen <= 0) return Qnil;
-    olen = RSTRING_LEN(str);
-    if (olen < substrlen) return Qnil;
-    strptr = RSTRING_PTR(str);
-    substrptr = RSTRING_PTR(substr);
-    if (memcmp(strptr, substrptr, substrlen) != 0) return Qnil;
-
     len = olen - substrlen;
     s = strptr + substrlen;
     memmove(strptr, s, len);
@@ -9215,22 +9228,12 @@ rb_str_delete_prefix_bang(VALUE str, VALUE substr)
 static VALUE
 rb_str_delete_prefix(VALUE str, VALUE substr)
 {
-    char *strptr, *substrptr;
     long olen, substrlen;
+    substr = delete_prefix_substr(str, substr);
+    if (substr == Qnil) return rb_str_dup(str);
 
-    StringValue(substr);
-    if (is_broken_string(substr)) return rb_str_dup(str);
-    rb_enc_check(str, substr);
-
-    // return if not start_with with substr
-    substrlen = RSTRING_LEN(substr);
-    if (substrlen <= 0) return rb_str_dup(str);
     olen = RSTRING_LEN(str);
-    if (olen < substrlen) return rb_str_dup(str);
-    strptr = RSTRING_PTR(str);
-    substrptr = RSTRING_PTR(substr);
-    if (memcmp(strptr, substrptr, substrlen) != 0) return rb_str_dup(str);
-
+    substrlen = RSTRING_LEN(substr);
     return rb_str_subseq(str, substrlen, olen - substrlen);
 }
 
