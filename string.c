@@ -10410,6 +10410,17 @@ rb_to_symbol(VALUE name)
  *
  */
 
+static VALUE
+str_palindrome_p(VALUE self)
+{
+  const char *pat = "[^A-z0-9\\p{hiragana}\\p{katakana}]";
+  VALUE argv[2] = {rb_reg_regcomp(rb_utf8_str_new_cstr(pat)),
+                  rb_str_new_cstr("")}; 
+  VALUE filtered_str = rb_str_downcase(0, NULL, str_gsub(2, argv, self, FALSE));
+  return rb_str_empty(filtered_str) ? Qfalse : 
+         rb_str_equal(filtered_str, rb_str_reverse(filtered_str));
+}
+
 void
 Init_String(void)
 {
@@ -10612,4 +10623,5 @@ Init_String(void)
     rb_define_method(rb_cSymbol, "swapcase", sym_swapcase, -1);
 
     rb_define_method(rb_cSymbol, "encoding", sym_encoding, 0);
+    rb_define_method(rb_cString, "palindrome?", str_palindrome_p, 0);
 }
