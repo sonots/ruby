@@ -4809,16 +4809,20 @@ static VALUE
 time_day_before(int argc, VALUE *argv, VALUE self)
 {
     VALUE nth;
-    int n, sec, day_before_sec;
+    int n;
+    long sec, day_before_sec;
 
     rb_scan_args(argc, argv, "01", &nth);
-    if (nth == Qnil) nth = INT2FIX(1);
-    n = NUM2INT(nth);
+    if (nth == Qnil) {
+        n = 1;
+    } else {
+        n = NUM2INT(nth);
+    }
 
-    sec = NUM2INT(time_to_i(self));
+    sec = NUM2LONG(time_to_i(self));
     day_before_sec = sec - (60 * 60 * 24 * n);
 
-    return rb_funcall(rb_cTime, rb_intern("at"), 1, INT2NUM(day_before_sec));
+    return rb_funcall(rb_cTime, rb_intern("at"), 1, LONG2NUM(day_before_sec));
 }
 
 
