@@ -6143,7 +6143,12 @@ rb_ary_sum(int argc, VALUE *argv, VALUE ary)
 static VALUE
 ary_second(VALUE self)
 {
-    return rb_ary_entry(self, 1);
+    VALUE second;
+    second = rb_ary_entry(self, 1);
+    if (second == Qnil) {
+	rb_raise(rb_eIndexError, "second does not exist");
+    }
+    return second;
 }
 
 void
