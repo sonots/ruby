@@ -5349,6 +5349,22 @@ int_add(VALUE self, VALUE n)
     }
 }
 
+static VALUE
+int_sub(VALUE self, VALUE n)
+{
+    if (FIXNUM_P(self) && FIXNUM_P(n)) {
+        /* c = a - b */
+        long a = FIX2LONG(self);
+        long b = FIX2LONG(n);
+        long c = a - b;
+        VALUE result = LONG2NUM(c);
+        return result;
+    }
+    else {
+	return rb_int_minus(self, n);
+    }
+}
+
 void
 Init_Numeric(void)
 {
@@ -5409,6 +5425,7 @@ Init_Numeric(void)
     rb_define_singleton_method(rb_cInteger, "sqrt", rb_int_s_isqrt, 1);
 
     rb_define_method(rb_cInteger, "add", int_add, 1);
+    rb_define_method(rb_cInteger, "minus", int_sub, 1);
     rb_define_method(rb_cInteger, "to_s", int_to_s, -1);
     rb_define_alias(rb_cInteger, "inspect", "to_s");
     rb_define_method(rb_cInteger, "integer?", int_int_p, 0);
