@@ -6140,6 +6140,12 @@ rb_ary_sum(int argc, VALUE *argv, VALUE ary)
  *
  */
 
+static VALUE
+ary_second(VALUE self)
+{
+    return rb_ary_entry(self, 1);
+}
+
 void
 Init_Array(void)
 {
@@ -6171,6 +6177,7 @@ Init_Array(void)
     rb_define_method(rb_cArray, "at", rb_ary_at, 1);
     rb_define_method(rb_cArray, "fetch", rb_ary_fetch, -1);
     rb_define_method(rb_cArray, "first", rb_ary_first, -1);
+    rb_define_method(rb_cArray, "second", ary_second, 0);
     rb_define_method(rb_cArray, "last", rb_ary_last, -1);
     rb_define_method(rb_cArray, "concat", rb_ary_concat_multi, -1);
     rb_define_method(rb_cArray, "<<", rb_ary_push, 1);
