@@ -5332,6 +5332,13 @@ rb_int_s_isqrt(VALUE self, VALUE num)
  *   puts tally * 2            #=> "||||"
  *   puts tally > 1            #=> true
  */
+
+static VALUE
+int_add(VALUE self, VALUE n)
+{
+    return rb_int_plus(self, n);
+}
+
 void
 Init_Numeric(void)
 {
@@ -5391,6 +5398,7 @@ Init_Numeric(void)
     rb_undef_method(CLASS_OF(rb_cInteger), "new");
     rb_define_singleton_method(rb_cInteger, "sqrt", rb_int_s_isqrt, 1);
 
+    rb_define_method(rb_cInteger, "add", int_add, 1);
     rb_define_method(rb_cInteger, "to_s", int_to_s, -1);
     rb_define_alias(rb_cInteger, "inspect", "to_s");
     rb_define_method(rb_cInteger, "integer?", int_int_p, 0);
