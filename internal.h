@@ -381,43 +381,6 @@ rb_overflowed_fix_to_int(long x)
 }
 
 static inline VALUE
-rb_fix_plus_fix(VALUE x, VALUE y)
-{
-#ifdef HAVE_BUILTIN___BUILTIN_ADD_OVERFLOW
-    long lz;
-    /* NOTE
-     * (1) `LONG2FIX(FIX2LONG(x)+FIX2LONG(y))`
-     +     = `((lx*2+1)/2 + (ly*2+1)/2)*2+1`
-     +     = `lx*2 + ly*2 + 1`
-     +     = `(lx*2+1) + (ly*2+1) - 1`
-     +     = `x + y - 1`
-     * (2) Fixnum's LSB is always 1.
-     *     It means you can always run `x - 1` without overflow.
-     * (3) Of course `z = x + (y-1)` may overflow.
-     *     At that time true value is
-     *     * positive: 0b0 1xxx...1, and z = 0b1xxx...1
-     *     * nevative: 0b1 0xxx...1, and z = 0b0xxx...1
-     *     To convert this true value to long,
-     *     (a) Use arithmetic shift
-     *         * positive: 0b11xxx...
-     *         * negative: 0b00xxx...
-     *     (b) invert MSB
-     *         * positive: 0b01xxx...
-     *         * negative: 0b10xxx...
-     */
-    if (__builtin_add_overflow((long)x, (long)y-1, &lz)) {
-	return rb_int2big(rb_overflowed_fix_to_int(lz));
-    }
-    else {
-	return (VALUE)lz;
-    }
-#else
-    long lz = FIX2LONG(x) + FIX2LONG(y);
-    return LONG2NUM(lz);
-#endif
-}
-
-static inline VALUE
 rb_fix_minus_fix(VALUE x, VALUE y)
 {
 #ifdef HAVE_BUILTIN___BUILTIN_SUB_OVERFLOW
@@ -432,6 +395,12 @@ rb_fix_minus_fix(VALUE x, VALUE y)
     long lz = FIX2LONG(x) - FIX2LONG(y);
     return LONG2NUM(lz);
 #endif
+}
+
+static inline VALUE
+rb_fix_plus_fix(VALUE x, VALUE y)
+{
+    return rb_fix_minus_fix(x, y);
 }
 
 /* arguments must be Fixnum */

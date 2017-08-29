@@ -1050,6 +1050,7 @@ rb_float_uminus(VALUE flt)
 static VALUE
 flo_plus(VALUE x, VALUE y)
 {
+    printf("flo_plus");
     if (RB_TYPE_P(y, T_FIXNUM)) {
 	return DBL2NUM(RFLOAT_VALUE(x) + (double)FIX2LONG(y));
     }
@@ -3229,6 +3230,7 @@ VALUE
 rb_int_succ(VALUE num)
 {
     if (FIXNUM_P(num)) {
+        printf("rb_int_succ");
 	long i = FIX2LONG(num) + 1;
 	return LONG2NUM(i);
     }
@@ -3515,9 +3517,12 @@ rb_fix_plus(VALUE x, VALUE y)
     return fix_plus(x, y);
 }
 
+#include "vm_debug.h"
+
 VALUE
 rb_int_plus(VALUE x, VALUE y)
 {
+    printf("rb_int_plus\n");
     if (FIXNUM_P(x)) {
 	return fix_plus(x, y);
     }
@@ -5449,7 +5454,8 @@ Init_Numeric(void)
     rb_define_method(rb_cInteger, "<=>", rb_int_cmp, 1);
 
     rb_define_method(rb_cInteger, "-@", rb_int_uminus, 0);
-    rb_define_method(rb_cInteger, "+", rb_int_plus, 1);
+    rb_define_method(rb_cInteger, "plus", rb_int_plus, 1);
+    rb_define_method(rb_cInteger, "+", rb_int_minus, 1);
     rb_define_method(rb_cInteger, "-", rb_int_minus, 1);
     rb_define_method(rb_cInteger, "*", rb_int_mul, 1);
     rb_define_method(rb_cInteger, "/", rb_int_div, 1);
