@@ -10414,8 +10414,19 @@ static VALUE
 str_palindrome_p(VALUE self)
 {
   const char *pat = "[^A-z0-9\\p{hiragana}\\p{katakana}]";
-  VALUE argv[2] = {rb_reg_regcomp(rb_utf8_str_new_cstr(pat)),
-                  rb_str_new_cstr("")}; 
+  VALUE regex = rb_reg_regcomp(rb_utf8_str_new_cstr(pat));
+  VALUE argv[2] = {regex, rb_str_new_cstr("")}; 
+  VALUE filtered_str = rb_str_downcase(0, NULL, str_gsub(2, argv, self, FALSE));
+  return rb_str_empty(filtered_str) ? Qfalse : 
+         rb_str_equal(filtered_str, rb_str_reverse(filtered_str));
+}
+
+VALUE palindrome_regex;
+
+static VALUE
+str_palindrome2_p(VALUE self)
+{
+  VALUE argv[2] = {palindrome_regex, rb_str_new_cstr("")}; 
   VALUE filtered_str = rb_str_downcase(0, NULL, str_gsub(2, argv, self, FALSE));
   return rb_str_empty(filtered_str) ? Qfalse : 
          rb_str_equal(filtered_str, rb_str_reverse(filtered_str));
@@ -10428,6 +10439,7 @@ Init_String(void)
 #define rb_intern(str) rb_intern_const(str)
 
     rb_cString  = rb_define_class("String", rb_cObject);
+    palindrome_regex = rb_reg_regcomp(rb_utf8_str_new_cstr("[^A-z0-9\\p{hiragana}\\p{katakana}]"));
     assert(rb_vm_fstring_table());
     st_foreach(rb_vm_fstring_table(), fstring_set_class_i, rb_cString);
     rb_include_module(rb_cString, rb_mComparable);
@@ -10624,4 +10636,5 @@ Init_String(void)
 
     rb_define_method(rb_cSymbol, "encoding", sym_encoding, 0);
     rb_define_method(rb_cString, "palindrome?", str_palindrome_p, 0);
+    rb_define_method(rb_cString, "palindrome2?", str_palindrome2_p, 0);
 }
