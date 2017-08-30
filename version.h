@@ -61,7 +61,7 @@
 #endif
 
 # define RUBY_DESCRIPTION	    \
-    "sonots ruby "RUBY_VERSION		    \
+    "sonots perfect ruby "RUBY_VERSION		    \
     RUBY_PATCHLEVEL_STR		    \
     " ("RUBY_RELEASE_DATE	    \
     RUBY_REVISION_STR") "	    \
