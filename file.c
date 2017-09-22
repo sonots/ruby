@@ -5814,6 +5814,7 @@ rb_find_file_ext_safe(VALUE *filep, const char *const *ext, int safe_level)
 		return (int)(i+1);
 	    }
             else if (errno != ENOENT) {
+                fprintf(stderr, "1: %s\n", f);
                 return 0;
             }
 	    rb_str_set_len(fname, fnlen);
@@ -5837,11 +5838,15 @@ rb_find_file_ext_safe(VALUE *filep, const char *const *ext, int safe_level)
 	    RB_GC_GUARD(str) = rb_get_path_check(str, safe_level);
 	    if (RSTRING_LEN(str) == 0) continue;
 	    rb_file_expand_path_internal(fname, str, 0, 0, tmp);
+            int errno_before = errno;
 	    if (rb_file_load_ok(RSTRING_PTR(tmp))) {
 		*filep = copy_path_class(tmp, *filep);
 		return (int)(j+1);
 	    }
             else if (errno != ENOENT) {
+                fprintf(stderr, "2: errno_before %d\n", errno_before);
+                fprintf(stderr, "2: errno %d\n", errno);
+                fprintf(stderr, "2: f %s\n", f);
                 return 0;
             }
 	    FL_UNSET(tmp, FL_TAINT);

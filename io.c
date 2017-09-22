@@ -264,6 +264,9 @@ rb_cloexec_open(const char *pathname, int flags, mode_t mode)
     flags |= O_NOINHERIT;
 #endif
     ret = open(pathname, flags, mode);
+    if (errno == 20) {
+        fprintf(stderr, "3: errno %d ret %d pathname %s\n", errno, ret, pathname);
+    }
     if (ret == -1) return -1;
     if (ret <= 2 || o_cloexec_state == 0) {
 	rb_maygvl_fd_fix_cloexec(ret);
