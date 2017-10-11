@@ -1433,3 +1433,92 @@ rb_profile_frame_full_label(VALUE frame)
 	return rb_sprintf("%.*s%"PRIsVALUE, prefix_len, RSTRING_PTR(label), qualified_method_name);
     }
 }
+
+VALUE
+rb_bt()
+{
+    rb_vm_t* ps_vm = rb_current_vm;
+    list_node* ps_thread_ln = ps_vm->living_threads.n.next;
+    list_node* ps_thread_ln_last = ps_vm->living_threads.n.prev;
+    while(1) {
+        rb_thread_t* ps_thread_th = (rb_thread_t *)ps_thread_ln;
+        VALUE ps_thread = (VALUE)(ps_thread_th->self);
+        rb_ps_thread(ps_thread);
+        if (ps_thread_ln == ps_thread_ln_last) {
+            break;
+        }
+        ps_thread_ln = ps_thread_ln->next;
+    }
+}
+
+VALUE
+rb_ps_thread(struct RTypedData* ps_thread)
+{
+    ps_thread_th = (rb_thread_t*)ps_thread->data;
+    printf("* #<Thread:%p rb_thread_t:%p native_thread:%p>\n", \
+            ps_thread, ps_thread_th, ps_thread_th->thread_id);
+    cfp = ps_thread_th->ec.cfp;
+    cfpend = (rb_control_frame_t *)(ps_thread_th->ec.vm_stack + ps_thread_th->ec.vm_stack_size)-1;
+    while(cfp < cfpend) {
+        if(cfp->iseq) {
+            if(!((VALUE)cfp->iseq & RUBY_IMMEDIATE_MASK) && (((imemo_ifunc << RUBY_FL_USHIFT) | RUBY_T_IMEMO)==cfp->iseq->flags & ((imemo_mask << RUBY_FL_USHIFT) | RUBY_T_MASK))) {
+                printf("%d:ifunc ", cfpend-cfp);
+                // set print symbol-filename on
+                // output/a $cfp->iseq.body
+                // set print symbol-filename off
+                // printf "\n"
+            }
+            else {
+                if(cfp->pc) {
+                    location = cfp->iseq->body->location;
+                    printf("%d:", cfpend-cfp);
+                    // print_pathobj $location.pathobj
+                    printf(":");
+                    // print_lineno $cfp
+                    printf(":in `");
+                    // print_string $location.label
+                    printf("'\n");
+                }
+                else {
+                    printf("%d: ???.rb:???:in `???'\n", cfpend-cfp);
+                }
+            }
+        }
+        else {
+            // # if VM_FRAME_TYPE($cfp->flag) == VM_FRAME_MAGIC_CFUNC
+            ep = cfp->ep;
+            if((ep[0] & 0xffff0001) == 0x55550001) {
+                // #define VM_ENV_FLAG_LOCAL 0x02
+                // #define VM_ENV_PREV_EP(ep)   GC_GUARDED_PTR_REF(ep[VM_ENV_DATA_INDEX_SPECVAL])
+                me = 0;
+                env_specval = ep[-1];
+                env_me_cref = ep[-2];
+                while((env_specval & 0x02) != 0) {
+                    check_method_entry env_me_cref;
+                    if(me != 0) {
+                        break;
+                    }
+                    ep = ep[0];
+                    env_specval = ep[-1];
+                    env_me_cref = ep[-2];
+                }
+                if(me == 0) {
+                    check_method_entry(env_me_cref);
+                }
+                printf("%d:", cfpend-cfp);
+                //set print symbol-filename on
+                //output/a $me->def->body.cfunc.func
+                printf("%x", me->def->body.cfunc.fun);
+                //set print symbol-filename off
+                mid = me->def->original_id;
+                printf(":in `");
+                //print_id $mid
+                printf("'\n");
+            }
+            else {
+                printf("%d:unknown_frame:???:in `???'\n", cfpend-cfp);
+            }
+        }
+        cfp = cfp + 1;
+    }
+}
