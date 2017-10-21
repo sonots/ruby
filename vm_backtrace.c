@@ -720,6 +720,28 @@ oldbt_print(void *data, VALUE file, int lineno, VALUE name)
 }
 
 static void
+print_thread(FILE *fp, rb_thread_t *th)
+{
+    const char *status;
+    switch (th->status) {
+        case THREAD_RUNNABLE:
+            status = "runnable";
+            break;
+        case THREAD_STOPPED:
+            status = "stopped";
+            break;
+        case THREAD_STOPPED_FOREVER:
+            status = "stopped_forever";
+            break;
+        case THREAD_KILLED:
+            status = "killed";
+            break;
+    }
+    fprintf(fp, "  Thread %p native_thread=%p status=%s priority=%d\n",
+            th, (void *)(th->thread_id), status, th->priority);
+}
+
+static void
 vm_backtrace_print_all_threads(FILE *fp)
 {
     struct oldbt_arg arg;
@@ -736,6 +758,7 @@ vm_backtrace_print_all_threads(FILE *fp)
     thread_ln_last = vm->living_threads.n.prev;
     while(1) {
         thread_th = (rb_thread_t *)thread_ln;
+        print_thread(fp, thread_th);
         backtrace_each(thread_th,
                 oldbt_init,
                 oldbt_iter_iseq,
