@@ -720,6 +720,41 @@ oldbt_print(void *data, VALUE file, int lineno, VALUE name)
 }
 
 static void
+vm_backtrace_print_all_threads(FILE *fp)
+{
+    struct oldbt_arg arg;
+    rb_vm_t *vm;
+    struct list_node *thread_ln;
+    struct list_node *thread_ln_last;
+    rb_thread_t *thread_th;
+
+    arg.func = oldbt_print;
+    arg.data = (void *)fp;
+
+    vm = GET_VM();
+    thread_ln = vm->living_threads.n.next;
+    thread_ln_last = vm->living_threads.n.prev;
+    while(1) {
+        thread_th = (rb_thread_t *)thread_ln;
+        backtrace_each(thread_th,
+                oldbt_init,
+                oldbt_iter_iseq,
+                oldbt_iter_cfunc,
+                &arg);
+        if (thread_ln == thread_ln_last) {
+            break;
+        }
+        thread_ln = thread_ln->next;
+    }
+}
+
+void
+rb_backtrace_all_threads(void)
+{
+    vm_backtrace_print_all_threads(stderr);
+}
+
+static void
 vm_backtrace_print(FILE *fp)
 {
     struct oldbt_arg arg;
