@@ -722,21 +722,8 @@ oldbt_print(void *data, VALUE file, int lineno, VALUE name)
 static void
 print_thread(FILE *fp, rb_thread_t *th)
 {
-    const char *status;
-    switch (th->status) {
-        case THREAD_RUNNABLE:
-            status = "runnable";
-            break;
-        case THREAD_STOPPED:
-            status = "stopped";
-            break;
-        case THREAD_STOPPED_FOREVER:
-            status = "stopped_forever";
-            break;
-        case THREAD_KILLED:
-            status = "killed";
-            break;
-    }
+    const char *status = thread_status_name(th, FALSE):
+    // should use rb_thread_status?
     fprintf(fp, "  Thread %p native_thread=%p status=%s priority=%d\n",
             th, (void *)(th->thread_id), status, th->priority);
 }

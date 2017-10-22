@@ -2764,7 +2764,7 @@ rb_thread_group(VALUE thread)
 /*! Returns thread status in string
  *
  * @param th thread
- * @param detail take care of detailed status such as "sleep_forever" if true
+ * @param detail take care of detailed status such as "sleep_forever" if TRUE
  * @return status string
  */
 const char *
