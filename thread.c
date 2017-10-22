@@ -2761,7 +2761,13 @@ rb_thread_group(VALUE thread)
     return group == 0 ? Qnil : group;
 }
 
-static const char *
+/*! Returns thread status in string
+ *
+ * @param th thread
+ * @param detail take care of detailed status such as "sleep_forever" if true
+ * @return status string
+ */
+const char *
 thread_status_name(rb_thread_t *th, int detail)
 {
     switch (th->status) {
